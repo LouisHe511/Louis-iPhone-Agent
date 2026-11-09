@@ -1,0 +1,74 @@
+{
+  "baseline": "80b1c8f99c2e6d35e52bbb37967aa8b0a4b6c7e3",
+  "references": [
+    {
+      "source": "app-only read-only working files",
+      "revision": null,
+      "license_observed": "Local reference; no source copied",
+      "url": null,
+      "files": {
+        "README.md": "fdf86c1455bb650727a73091942e59894037d9f64678bf892042d2f915a1641f",
+        "VALIDATION.md": "82cd39d90c6f400177b9564e31c8af53fcb16494b2c02f5ce9129738710f7762",
+        "REFERENCES.md": "e9b9b63d6b990b13c4f51472bf566b7b8802e740bb3e213acf3eab1f261d12e0",
+        "AppOnly/CoreDeviceProbe.m": "49a2bfc0221df60ee3f332e1eaa35cf7e3ad84f9a934282be6f34412db127cd6",
+        "AppOnly/RemoteXPCProbe.m": "da74323f4c6ab005f2699c5e22d0e4d568f2cf6071cfb77aff3899935530caae",
+        "validation/coredevice-2026-10-03.json": "90d13510f6e01b68d88346e4ce27842266d4d7e0fb1a9d97e89254354405a794",
+        "validation/devicehub-2026-10-03.json": "48f0a8a51a30420f4262143003d7c00a91d74e2cb606f68df6093b0228ca96d4",
+        "validation/selfpair-2026-10-03.json": "f66ede0d2f234e5b7aa3d128a7483aae146e58f284b7e3a21d430308342c2608",
+        "validation/self-connection-2026-10-03.json": "08d4bcdc5fb79693c1ef7c3d98f46eb70de51db8caaeddd9945c6b4075d5c5de"
+      }
+    },
+    {
+      "source": "device-hub-ios local fixed reference",
+      "revision": "1fcdfb0a6799b62f05625d0cbb359bec57256b94",
+      "license_observed": "MIT; vendor idevice pin a64b8867815b3da17b5c927531bdba877e8456ef with project patches",
+      "url": "https://github.com/JaviSoto/device-hub-ios",
+      "files": {
+        "LICENSE": "4410cda18cd6959d53106c0ed799b3bc483993f5e44f4457a6d9baa1b1f43dfe",
+        "THIRD_PARTY_NOTICES.md": "dc6f1794151ba3fe91465cb981b63d70e5b29ea247fc09aff0a07cf0d7311e3d",
+        "Docs/ProtocolSecurity.md": "d50cefac714598c61181c4497d37fc3d266fed06c251bcb744cab005a5a9a8b3",
+        "Rust/DeviceHubFFI/src/protocol.rs": "5ab0378f73996a9dfccdb02cc7505fa121aba6f64ac35e847fe63801c844e46a",
+        "Vendor/idevice/idevice/src/remote_pairing/socket.rs": "025737f5be07bf42b009a105538d46bad0e73fa4ae2a64537196b7de3390adee",
+        "Vendor/idevice/idevice/src/remote_pairing/rp_pairing_file.rs": "10c6855c2fbcd5a4a5dd3e51972e88639ff8c7eb9ec90c34f370b264648ed4fc",
+        "Licenses/idevice-MIT.txt": "131488ce7e302b9f62e3236793e57c86a208d3dfaf03e6d7d03ddc0fc82392ed"
+      }
+    },
+    {
+      "source": "pymobiledevice3",
+      "revision": "cd895d17ce8a97d883c10f87b26c7356d5e0ccb1",
+      "license_observed": "GPL-3.0-or-later",
+      "url": "https://github.com/doronz88/pymobiledevice3",
+      "files": {
+        "LICENSE": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+        "pyproject.toml": "07e5caf4d2b411a25e1427939217cd1c4ee70c994a55ee34cf127f4535745876",
+        "pymobiledevice3/remote/tunnel_service.py": "ae788ece14718a59af73300578159d6642f15b24f75851d90c5c456d33000263",
+        "pymobiledevice3/remote/core_device/hid_service.py": "33cf97ead6c641a3792769379aba9437037d576f678595928f3704b97bef909b",
+        "pymobiledevice3/remote/core_device/screen_capture_service.py": "6bf4a01ce18d35934968dde6794cf3bfcf0c60dd358ed2c6cd6df2dac78848cd"
+      }
+    },
+    {
+      "source": "idevice_pair",
+      "revision": "6deb85f33c3f16c8f5d505387e1b2653a10eb8b9",
+      "license_observed": "No project LICENSE/license manifest identified; no code copied",
+      "url": "https://github.com/jkcoxson/idevice_pair",
+      "files": {
+        "Cargo.toml": "3ebd37c2b6f79f135e16201b69f87fcab4d21cae38f98edf1344fa837dbb5f59",
+        "src/backend/wireless.rs": "cb61153aef91a4f58c04e67e8cbcf47360667eb588415fd3779892c449d1f171",
+        "src/backend/pairing.rs": "6ee73cd31dcf286cf71f51241faf9671a9f29116994145ff6b7e1b34a0c9aa69"
+      }
+    },
+    {
+      "source": "rPlayHub",
+      "revision": "fe6a7a9f1cff431acfda142cd3564fc8e0e849a3",
+      "license_observed": "GPL-3.0; reference only, no code copied",
+      "url": "https://github.com/rPlayAI/rPlayHub",
+      "files": {
+        "LICENSE": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
+        "core/rp_remotexpc.c": "bfa90d6387a3844e4fc5c8bac77f69cd4da9f774bfd8641e599b6559026f4479",
+        "core/rp_coredevice.c": "4801bbddfc3e7e65d9879ee061e2a79fe797ef6d0bcfc01903482e8ecf27da6c",
+        "host-c/ddi.c": "bde8a8e32b34bf300cd9c0794dd76ae3f558d2833f29dee3b46433a0b2307373",
+        "doc/DDI.md": "b58e098b5cd9e22bc1c6b346d1bfef25a0a0fccb019d0e10ca132e8cfff0766b"
+      }
+    }
+  ]
+}

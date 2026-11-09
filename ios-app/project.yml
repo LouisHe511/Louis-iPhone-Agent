@@ -1,0 +1,122 @@
+name: PhoneAgent
+options:
+  bundleIdPrefix: com.ja1chen
+  deploymentTarget:
+    iOS: '27.0'
+settings:
+  base:
+    GENERATE_INFOPLIST_FILE: YES
+    SWIFT_VERSION: '5.0'
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEVELOPMENT_TEAM: ''
+    MARKETING_VERSION: '0.1.0'
+    CURRENT_PROJECT_VERSION: '1'
+  configs:
+    Debug:
+      ONLY_ACTIVE_ARCH: YES
+    Release:
+      ONLY_ACTIVE_ARCH: NO
+packages:
+  SwiftAgentKit:
+    path: Vendor/SwiftAgentKit
+  ProviderKit:
+    path: ProviderKit
+  MarkdownUI:
+    url: https://github.com/gonzalezreal/swift-markdown-ui.git
+    exactVersion: 2.4.1
+targets:
+  PhoneAgent:
+    type: application
+    platform: iOS
+    sources:
+      - PhoneAgent
+      - Shared
+      - ../coredevice/swift/Sources/CoreDeviceBackend
+      - path: Licenses
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        ARCHS: arm64
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        HEADER_SEARCH_PATHS: ['$(inherited)', '$(SRCROOT)/../coredevice/swift/Sources/CCoreDeviceBackend/include']
+        OTHER_LDFLAGS: ['$(inherited)', '-lcoredevice_backend', '-framework', 'Security', '-framework', 'SystemConfiguration']
+        'LIBRARY_SEARCH_PATHS[sdk=iphoneos*]': ['$(inherited)', '$(SRCROOT)/../.build/coredevice-rust/aarch64-apple-ios/release']
+        'LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]': ['$(inherited)', '$(SRCROOT)/../.build/coredevice-rust/aarch64-apple-ios-sim/release']
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        PRODUCT_BUNDLE_IDENTIFIER: com.ja1chen.PhoneAgent
+        INFOPLIST_FILE: PhoneAgent/Info.plist
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: PhoneAgent/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: 执言
+        INFOPLIST_KEY_NSSupportsLiveActivities: YES
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Connect to your explicitly paired development bridge while this app is open.
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: '1,2'
+    preBuildScripts:
+      - name: Build CoreDevice backend
+        basedOnDependencyAnalysis: false
+        script: |
+          case "$PLATFORM_NAME" in
+            iphoneos) mode=device ;;
+            iphonesimulator) mode=simulator ;;
+            *) exit 1 ;;
+          esac
+          bash "$SRCROOT/../tools/build_coredevice_rust.sh" "$mode"
+    dependencies:
+      - target: PhoneAgentLiveActivity
+        embed: true
+      - package: SwiftAgentKit
+        product: SwiftAgentKit
+      - package: ProviderKit
+        product: ProviderCore
+      - package: ProviderKit
+        product: OpenAIAdapter
+      - package: MarkdownUI
+        product: MarkdownUI
+  PhoneAgentLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources: [PhoneAgentLiveActivity, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ja1chen.PhoneAgent.LiveActivity
+        INFOPLIST_FILE: PhoneAgentLiveActivity/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Phone Agent Status
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+  PhoneAgentTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [PhoneAgentTests]
+    settings:
+      base:
+        HEADER_SEARCH_PATHS: ['$(inherited)', '$(SRCROOT)/../coredevice/swift/Sources/CCoreDeviceBackend/include']
+    dependencies:
+      - target: PhoneAgent
+      - package: SwiftAgentKit
+        product: SwiftAgentKit
+      - package: ProviderKit
+        product: ProviderCore
+      - package: ProviderKit
+        product: OpenAIAdapter
+  PhoneAgentUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [PhoneAgentUITests]
+    settings:
+      base:
+        TEST_TARGET_NAME: PhoneAgent
+    dependencies:
+      - target: PhoneAgent
+schemes:
+  PhoneAgent:
+    build:
+      targets:
+        PhoneAgent: all
+    test:
+      targets: [PhoneAgentTests, PhoneAgentUITests]
+      environmentVariables:
+        PHONEAGENT_ISOLATED_TESTS: '1'

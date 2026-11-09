@@ -1,0 +1,2 @@
+# Preserve vendor PDFs byte-for-byte and avoid textual PDF diffs.
+*.pdf binary

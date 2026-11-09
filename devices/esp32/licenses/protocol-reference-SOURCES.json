@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/doronz88/pymobiledevice3",
+  "commit": "cd895d17ce8a97d883c10f87b26c7356d5e0ccb1",
+  "license": "GPL-3.0-or-later",
+  "files": {
+    "media_stream_offer.py": "e848f58d9ebf8be010de7d7e37a9bf22fff01fbe0d8d2d8202af61706754f9e7",
+    "hid_service.py": "33cf97ead6c641a3792769379aba9437037d576f678595928f3704b97bef909b",
+    "xpc_message.py": "37fec195c212cca1887074a589de571875ccf1e35ede25c24b2bc0080dbcebb1",
+    "remotexpc.py": "315c118a6846807de1125d3fe61829792b5c07edb8814d0a7d142f610ff37ad8",
+    "remote_service_discovery.py": "654d4c2cdb6876d0e0e0035e07ffeaa0b2db2e1d576c4b19179823d9b48a32cf"
+  }
+}

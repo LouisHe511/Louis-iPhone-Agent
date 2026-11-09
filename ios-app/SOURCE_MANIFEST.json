@@ -1,0 +1,155 @@
+{
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 99,
+      "sha256": "8d776b63c253d1852ed53f0d7c9bfbed845f31393d0e9f88c4004ef6665879f5"
+    },
+    {
+      "path": "Licenses/LLMProviderKit-MIT.txt",
+      "bytes": 1067,
+      "sha256": "85008e58e16e7df7502c39aa37ce7cca25cba3ddbe2096eedd6970652a546205"
+    },
+    {
+      "path": "Licenses/SwiftAgentKit-MIT.txt",
+      "bytes": 1067,
+      "sha256": "85008e58e16e7df7502c39aa37ce7cca25cba3ddbe2096eedd6970652a546205"
+    },
+    {
+      "path": "PhoneAgent/Agent/AgentViewModel.swift",
+      "bytes": 17024,
+      "sha256": "e22fe23f64ed524d6303fb9fa97b052ae56ee9f7567fb3aabfba31934c6f3599"
+    },
+    {
+      "path": "PhoneAgent/Agent/DeviceTools.swift",
+      "bytes": 9344,
+      "sha256": "8afb4030287e646108e5beaf54389d872f11e05e92c95df2208d3f4e99a11b4c"
+    },
+    {
+      "path": "PhoneAgent/Agent/Providers.swift",
+      "bytes": 7845,
+      "sha256": "fc191df1bfb0411b4c34f7985d497d4ebdfdcc04f3302b3fde9f8eded3cc9120"
+    },
+    {
+      "path": "PhoneAgent/App/ContentView.swift",
+      "bytes": 8100,
+      "sha256": "5f5d5db688c79f67d6dab246815934585215bd509611f15d2afc0e94435b0b06"
+    },
+    {
+      "path": "PhoneAgent/App/PhoneAgentApp.swift",
+      "bytes": 575,
+      "sha256": "60937be2ca4a1355c957bf4a3f8385aa9589cb18d6eb60ba52fd8d3366d3c4bb"
+    },
+    {
+      "path": "PhoneAgent/App/SettingsView.swift",
+      "bytes": 3479,
+      "sha256": "bbb8319bce7e840bbe9cd34c137df3ff79530c3b8cc4449f7564f5e69c5ba371"
+    },
+    {
+      "path": "PhoneAgent/Bridge/Bridge.swift",
+      "bytes": 290,
+      "sha256": "ac373ead2c3ec7bc9c661106f53ce7288776a10b1b1a9d118f421ad8cda57451"
+    },
+    {
+      "path": "PhoneAgent/Bridge/DemoBridge.swift",
+      "bytes": 2451,
+      "sha256": "0977c0678f66364afb7f02f310a84cacaefd7604d63e286fc8cf77a1990137bb"
+    },
+    {
+      "path": "PhoneAgent/Bridge/TLSBridge.swift",
+      "bytes": 14699,
+      "sha256": "edbcfdcc685aeea0f4d621eae9a74f80f1de1174020e69d01b0a4d65603a31d4"
+    },
+    {
+      "path": "PhoneAgent/Bridge/Wire.swift",
+      "bytes": 5702,
+      "sha256": "eb91da009e7f7358d30b0c09328467f2abf1579d47c02405c6807eb7490f7535"
+    },
+    {
+      "path": "PhoneAgent/Models/Models.swift",
+      "bytes": 2977,
+      "sha256": "646b813e1cf1248affcf2b7e87be4c787ec79dc098c5b6280885077260ca9609"
+    },
+    {
+      "path": "PhoneAgent/PrivacyInfo.xcprivacy",
+      "bytes": 510,
+      "sha256": "adbca54337be30788412a1f1b2dd8084591e7e876cc7dfeb10904b58e578a51e"
+    },
+    {
+      "path": "PhoneAgent/Security/SecretStore.swift",
+      "bytes": 1878,
+      "sha256": "0702d14580a628524801731819608c3f5e325dcce9c7165396fd0ef13ffcfdd2"
+    },
+    {
+      "path": "PhoneAgent/Storage/TaskStore.swift",
+      "bytes": 1300,
+      "sha256": "680cc3517b5871e0e00d085b73096194ec04d79b977a99bded4da2c5b53fc1fb"
+    },
+    {
+      "path": "PhoneAgentTests/ProtocolTests.swift",
+      "bytes": 3442,
+      "sha256": "cd55df9f0d77a32b6f57ae06298da19b0ad644a3579c833c246e4b3a0e42d631"
+    },
+    {
+      "path": "PhoneAgentTests/SafetyTests.swift",
+      "bytes": 4481,
+      "sha256": "be75bf64f78e7178708375ab191c6b2f3f0b4f5ed4fc8d9b885dfc9823e87b43"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6308,
+      "sha256": "f8b763132357031de269597eb045be24fc5dfd01ba75b7cb3f9c986086697cb1"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "bytes": 3340,
+      "sha256": "9b6568bdfa29b2c1ae002487ee6db4a9eb2f7b44a998c70b3328055e896dc731"
+    },
+    {
+      "path": "docs/BRIDGE_PROTOCOL_V1.md",
+      "bytes": 7683,
+      "sha256": "f4e49ca48751a1e20e9ed69e8e06b8ba3fbc74f8d24dbfb9cd89329f238ed6df"
+    },
+    {
+      "path": "docs/VERIFICATION.md",
+      "bytes": 4422,
+      "sha256": "bf81f92f3d01256c2c87b4947a333e2c82ace77d775071b7d20c0130370e8270"
+    },
+    {
+      "path": "fixtures/screenshot-transcript.json",
+      "bytes": 1300,
+      "sha256": "c1d57ca040c9009a3b8031f5afa5fb86288ea686569ba9ca64ed40a7ff14a395"
+    },
+    {
+      "path": "fixtures/synthetic-2x2.png",
+      "bytes": 73,
+      "sha256": "e3d7ab7c85e9d705046695150bc2959888cc0f72105498b6d210b128b5911610"
+    },
+    {
+      "path": "project.yml",
+      "bytes": 1838,
+      "sha256": "88d8ec7281e65e4cf43180d5e0d037107c0c022050b938d22b93dbade7d2b07b"
+    },
+    {
+      "path": "scripts/check_source.py",
+      "bytes": 2613,
+      "sha256": "65e19adb667691a9374e628faa9a5759bc19500e02ec258a22a3dabcc6f59a4f"
+    },
+    {
+      "path": "scripts/package_source.py",
+      "bytes": 1568,
+      "sha256": "c4d7a0fce4f9f0d4c39d8ff4b1b357042236564817536fffbc321e498ffd009c"
+    },
+    {
+      "path": "scripts/requirements-qa.txt",
+      "bytes": 59,
+      "sha256": "0c2079693f508d7e0c73c9447e32d7f4e2aee7da60b9c1073198ff5f1f5cfb75"
+    },
+    {
+      "path": "scripts/test_contract.py",
+      "bytes": 4902,
+      "sha256": "0cd72dfc6380e1473bec3d33cbf24ad6f98e9c168f12b8f0b7d97d858a801b06"
+    }
+  ],
+  "scope": "Original imported App source hashes, including retired files; not a current build inventory."
+}

@@ -1,0 +1,86 @@
+research/
+.build/
+device-backups/
+__pycache__/
+*.pem
+*.key
+*.p12
+*.pfx
+*pair_record*
+*pairing_record*
+.env
+.DS_Store
+
+
+# Local diagnostics can include device identifiers, network details and host paths.
+# Keep reviewed conclusions in Markdown; retain raw output locally, outside Git.
+*.log
+*.log.*
+*.xcactivitylog
+*.xcresult/
+*.trace/
+*.pcap
+*.pcapng
+/attachments/
+/logs/
+/diagnostics/
+
+# Generated validation output and machine-specific session inventories.
+/docs/**/evidence/
+/docs/local-validation/*
+!/docs/local-validation/*.md
+/docs/integration/*.json
+/ios-app/docs/xcode-validation/
+/ios-app/docs/background-runs/validation.txt
+/ios-app/docs/siri-validation/*.json
+
+# CoreDevice diagnostics, identities and build outputs stay local.
+/coredevice/swift/.build/
+/coredevice/swift/.swiftpm/
+/coredevice/**/pairing*.plist
+/coredevice/**/identity*.plist
+/coredevice/**/screen*.png
+/coredevice/**/screen*.hevc
+/coredevice/rust/target/
+
+# Keep captured screens and their manifests local; retain app assets and test fixtures.
+/docs/**/*.png
+/docs/**/*.jpg
+/docs/**/*.jpeg
+/ios-app/docs/**/*.png
+/ios-app/docs/**/*.jpg
+
+# Local handoff snapshots.
+**/handoffs/
+
+# Device build configuration and downloaded SDK components.
+/devices/esp32/firmware/managed_components/
+/devices/esp32/firmware/sdkconfig*
+/devices/esp32/firmware/build/
+
+# Local caches, signing and device output
+/.vendor/
+**/DerivedData/
+**/build-probe/
+**/xcuserdata/
+**/*.xcuserstate
+**/*.mobileprovision
+**/*.provisionprofile
+**/*.ipa
+**/*.app/
+**/*.dSYM/
+**/Local.xcconfig
+.env.*
+!.env.example
+**/conversations-v1.json
+**/tasks.json
+**/incidents.jsonl
+**/performance-stages.jsonl
+/local-control/.build/
+/local-control/LouisLocalRunner.xcodeproj/
+
+!coredevice/rust/tests/fixtures/lockdown/test-device-key.pem
+!coredevice/rust/tests/fixtures/lockdown/test-host-key.pem
+!coredevice/rust/tests/fixtures/lockdown/test-device.pem
+!coredevice/rust/tests/fixtures/lockdown/test-host.pem
+!coredevice/rust/tests/fixtures/lockdown/test-root.pem

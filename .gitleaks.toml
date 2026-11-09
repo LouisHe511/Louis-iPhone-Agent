@@ -1,0 +1,21 @@
+[extend]
+useDefault = true
+
+# Documented public OpenSSL-generated fixtures; never paired with hardware.
+[[allowlists]]
+description = "Public synthetic TLS fixtures"
+paths = ['(^|/)coredevice/rust/tests/fixtures/lockdown/test-(device|host)-key\.pem$']
+
+[[allowlists]]
+description = "Fixed synthetic browser-test token"
+condition = "AND"
+paths = ['(^|/)devices/esp32/tests/ncm/test_core\.c$']
+regexTarget = "line"
+regexes = ['nd_http http=\{\.token="0123456789abcdef0123456789abcdef"\}']
+
+[[allowlists]]
+description = "RPC config method documentation, not a credential"
+condition = "AND"
+paths = ['(^|/)local-control/iCTRLKit/RPCMethod\.swift$']
+regexTarget = "line"
+regexes = ['description: "Read or update server settings and manage authorized sessions\.']

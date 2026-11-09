@@ -1,0 +1,32 @@
+name: Source checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Check localizations
+        run: python3 ios-app/scripts/check_localizations.py
+      - name: Check public source layout
+        run: python3 tools/check_public_source.py
+      - name: Protocol and stop-release tests
+        run: CC=clang bash devices/esp32/tools/test_usb.sh
+      - name: Whitespace validation
+        run: git diff --check
+      - name: Scan committed history for credentials
+        shell: bash
+        run: |
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o /tmp/gitleaks.tar.gz
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          /tmp/gitleaks git . --config .gitleaks.toml --redact

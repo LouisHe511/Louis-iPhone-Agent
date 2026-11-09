@@ -1,0 +1,25 @@
+name: Bug report / 故障反馈
+description: Reproducible app, local control or performance issue.
+body:
+  - type: markdown
+    attributes:
+      value: "Provide a time and task first when local records are accessible. Do not upload secrets, raw containers, private chats, orders or course content. 能直接查本地记录时先提供时间和任务。"
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: Commit/version, iOS, route, provider and model; Wi-Fi/cellular/VPN/USB; cold or warm start. No keys or device identifiers.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual / 预期与实际
+      description: Task, last visible step, approximate time and timezone, whether input actually happened, and minimal reproduction.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Scoped diagnostics / 最小脱敏证据
+      description: Optional fixed-stage timings or error category. Review and redact any excerpt before posting.
