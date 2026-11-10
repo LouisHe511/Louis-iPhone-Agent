@@ -185,7 +185,7 @@ enum TextTargetError: LocalizedError {
         case .notFound: return String(localized: "The target text was not found. No tap was sent. Use the attached screenshot to choose a shorter exact label.")
         case .ambiguous: return String(localized: "The target text appears more than once. No tap was sent. Specify its occurrence in the attached screenshot.")
         case .lowConfidence: return String(localized: "The target text could not be read confidently. No tap was sent. Inspect the attached screenshot before choosing another label.")
-        case .keyboardControlUnavailable: return String(localized: "The keyboard close button could not be identified uniquely. No tap was sent. Inspect the attached screenshot.")
+        case .keyboardControlUnavailable: return String(localized: "The keyboard close button could not be identified uniquely. No tap was sent. Select its visible icon in the attached screenshot instead of repeating the same attempt.")
         }
     }
 }
@@ -206,7 +206,7 @@ struct DeviceTool: AgentTool {
         case "launch_app": return "Launch an installed app by exact bundle_id, optionally with up to 32 process arguments. No screenshot prerequisite. Requires task authorization. Does not terminate existing apps; arguments may not apply to an already running app. Delivery is not visual success. Reply includes a fresh screenshot and new image_id."
         case "type_text": return "Insert exact text into the focused field. All text uses clipboard and Command-V for the whole string, replacing the general clipboard and potentially requiring iOS paste consent. No automatic retry or Return submission. Requires task authorization. Do not use for credentials or replay uncertain input. Reply includes a fresh screenshot; verify the text landed and locate any next control from that image."
         case "wait": return "Wait locally 1..10000 ms. Reply includes a fresh screenshot — use it to check whether a countdown ad disappeared, a page finished loading, or content appeared."
-        case "dismiss_keyboard": return "Close the software keyboard after typing. Use this instead of pressing Return: in most web forms Return only inserts a newline and leaves the keyboard up. It only taps a uniquely recognized keyboard close label in a fresh screenshot. If none is identified, it returns an error without guessing coordinates. Verify the keyboard disappeared in the returned screenshot."
+        case "dismiss_keyboard": return "Close the keyboard using its visible dismissal control, never Return/Send. If the screenshot shows an icon-only close control (such as a checkmark), supply its visually selected integer x/y (0-1000) AND exact current image_id; no coordinates are guessed automatically. Without coordinates, locate a readable Done label by local OCR. If that fails, inspect the returned fresh image and select the actual close icon instead of repeating unchanged arguments. The input uses normal approval/session/geometry checks; inspect the post-action screenshot to confirm the keyboard disappeared. Do not close an already absent keyboard."
         default: return "Optionally end the run with a brief outcome and any uncertainty in summary, never private reasoning. A normal final answer can also end the run. Do not claim visible success from a delivery receipt alone."
         }
     }
@@ -218,7 +218,8 @@ struct DeviceTool: AgentTool {
         let purpose = ToolParameterProperty(type: "string", description: "Brief user-visible action purpose; no reasoning")
         let imageID = ToolParameterProperty(type: "string", description: "Exact image_id returned with the screenshot used to choose this target")
         switch name {
-        case "screenshot", "list_apps", "dismiss_keyboard": return .empty
+        case "screenshot", "list_apps": return .empty
+        case "dismiss_keyboard": return ToolParameters(properties: ["x": integer, "y": integer, "image_id": imageID], required: [])
         case "tap": return ToolParameters(properties: ["x": integer, "y": integer, "image_id": imageID, "purpose": purpose], required: ["x", "y", "image_id", "purpose"])
         case "tap_text": return ToolParameters(properties: ["text": .init(type: "string", description: "Exact visible label to tap, up to 100 UTF-8 bytes"), "image_id": imageID, "occurrence": .init(type: "integer", description: "Optional 1-based match in reading order (top-to-bottom, then left-to-right); required only when the exact text appears more than once"), "purpose": purpose], required: ["text", "image_id", "purpose"])
         case "drag": return ToolParameters(properties: ["from_x": integer, "from_y": integer, "to_x": integer, "to_y": integer, "duration_ms": duration, "image_id": imageID, "purpose": purpose], required: ["from_x", "from_y", "to_x", "to_y", "duration_ms", "image_id", "purpose"])
@@ -367,16 +368,28 @@ actor ActionCoordinator {
             guard !inputInFlight else { throw AppError.unavailable(String(localized: "An input action is already running")) }
             inputInFlight = true
             defer { inputInFlight = false }
-            let previous = try currentImage()
-            let frame = try await freshTextFrame(reference: previous.id)
-            let labelled = try await locateText(frame.png, String(localized: "Done"))
-            let candidates = labelled.filter { $0.y >= 480 }
-            guard candidates.count == 1, let candidate = candidates.first else {
-                throw TextTargetError.keyboardControlUnavailable
+            let frame: FrameImage
+            let point: (Int, Int)
+            if p["x"] != nil || p["y"] != nil {
+                guard p["x"] != nil, p["y"] != nil, let reference = p["image_id"] as? String else {
+                    throw AppError.invalid(String(localized: "Select the keyboard close icon using both coordinates and the current screenshot."))
+                }
+                // This is an explicit visual target, with the same current-frame
+                // checks as a normal icon tap. Never replace it with fixed points.
+                frame = try currentImage(reference)
+                point = (try integer(p, "x"), try integer(p, "y"))
+            } else {
+                let previous = try currentImage(p["image_id"] as? String)
+                frame = try await freshTextFrame(reference: previous.id)
+                let labelled = try await locateText(frame.png, String(localized: "Done"))
+                let candidates = labelled.filter { $0.y >= 480 }
+                guard candidates.count == 1, let candidate = candidates.first else {
+                    throw TextTargetError.keyboardControlUnavailable
+                }
+                let labelHit = try await ScreenTextOCR.verifyIfNeeded(in: frame.png, target: String(localized: "Done"), hit: candidate)
+                guard labelHit.confidence >= 0.45 || labelHit.verifiedByCrop else { throw TextTargetError.keyboardControlUnavailable }
+                point = (labelHit.x, labelHit.y)
             }
-            let labelHit = try await ScreenTextOCR.verifyIfNeeded(in: frame.png, target: String(localized: "Done"), hit: candidate)
-            guard labelHit.confidence >= 0.45 || labelHit.verifiedByCrop else { throw TextTargetError.keyboardControlUnavailable }
-            let point = (labelHit.x, labelHit.y)
             let tapParameters: [String: Any] = [
                 "x": point.0, "y": point.1, "image_id": frame.id,
                 "purpose": "dismiss keyboard", "_expected_image_id": frame.id,
@@ -385,7 +398,7 @@ actor ActionCoordinator {
             let result = try await execute(name: "tap", parameters: tapParameters, callID: callID)
             let source = "the identified keyboard control at \(point.0),\(point.1)"
             return AgentToolResult(toolCallId: result.toolCallId, toolName: "dismiss_keyboard",
-                                   result: "Tapped \(source). Verify in the attached frame that the keyboard is gone; if it is still visible, call this once more.\n\(result.result)",
+                                   result: "Tapped \(source). Inspect the attached fresh frame to confirm the keyboard is gone. If still visible, reassess the control; do not repeat unchanged arguments.\n\(result.result)",
                                    isError: result.isError, images: result.images)
         }
         // scroll → precise drag primitives. Content direction (down = reveal

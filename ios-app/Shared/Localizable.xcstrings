@@ -1,6 +1,23 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Select the keyboard close icon using both coordinates and the current screenshot.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select the keyboard close icon using both coordinates and the current screenshot."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择当前截图中的键盘关闭图标，并同时指定横纵位置。"
+          }
+        }
+      }
+    },
     "The model request was rejected (HTTP %lld)": {
       "extractionState": "manual",
       "localizations": {
@@ -273,19 +290,19 @@
         }
       }
     },
-    "The keyboard close button could not be identified uniquely. No tap was sent. Inspect the attached screenshot.": {
+    "The keyboard close button could not be identified uniquely. No tap was sent. Select its visible icon in the attached screenshot instead of repeating the same attempt.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The keyboard close button could not be identified uniquely. No tap was sent. Inspect the attached screenshot."
+            "value": "The keyboard close button could not be identified uniquely. No tap was sent. Select its visible icon in the attached screenshot instead of repeating the same attempt."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "未能唯一识别键盘关闭按钮，未执行点击。请查看附带的新截图。"
+            "value": "未能确定键盘关闭按钮，未执行点击。请根据新截图选择关闭图标，不要重复相同操作。"
           }
         }
       }

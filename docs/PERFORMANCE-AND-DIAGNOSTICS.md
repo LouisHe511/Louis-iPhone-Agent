@@ -33,6 +33,7 @@ The report separates successes/failures and uses nearest-rank percentiles. It do
 
 ## Failure behavior / 出错行为
 
+- Keyboard dismissal supports a readable Done label or a visually selected close icon with its current screenshot reference and both normalized coordinates. It never supplies fixed coordinates or presses Return as a fallback. After a label miss, inspect the returned image instead of repeating the same arguments.
 - A missing or ambiguous OCR target returns the fresh observation and a specific reason. No coordinate guess is sent. Low confidence without successful crop verification is rejected.
 - Two consecutive input failures stop the run. Read-only observation does not reset this counter; a successful input does.
 - A changed display/session invalidates an observation's action grant. Unknown input outcomes are never automatically replayed.
