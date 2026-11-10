@@ -646,7 +646,7 @@ struct AgentRunServices {
             onExecuting: { [weak self] callID, name in await self?.markExecuting(callID: callID, name: name, generation: token) },
             lifecycle: lifecycle, generation: token, authorizationMode: inputAuthorizationMode, diagnostics: usbDiagnostics)
         coordinator = action
-        let names = selectedMode == .demo ? ["screenshot", "tap", "tap_text", "drag", "scroll", "wait", "finish"] : ["screenshot", "tap", "tap_text", "drag", "scroll", "home", "list_apps", "launch_app", "type_text", "dismiss_keyboard", "wait"]
+        let names = selectedMode == .demo ? ["screenshot", "tap", "tap_text", "drag", "scroll", "wait", "finish"] : ["screenshot", "tap", "tap_text", "drag", "scroll", "home", "list_apps", "launch_app", "type_text", "dismiss_keyboard", "wait", "finish"]
         let skillSnapshot = skills.enabledSnapshot
         runSkillNames = Dictionary(uniqueKeysWithValues: skillSnapshot.map { ($0.id.uuidString, $0.name) })
         var tools: [any AgentTool] = names.map { DeviceTool(name: $0, coordinator: action) }
@@ -663,7 +663,7 @@ struct AgentRunServices {
             maxTurns: limits.maxTurns, contextWindow: nativeResponses ? Int.max / 4 : 16_384, maxMessages: nativeResponses ? 0 : 30,
             enablePlanning: false, enableRepairRetry: false, enablePlanContinuation: false,
             tools: tools,
-            autonomousMode: false, enableSubAgents: false, maxVerificationRetries: 0,
+            autonomousMode: false, enableSubAgents: false, maxVerificationRetries: Int.max,
             // Device actions consume the screenshot they target. Keep dispatch
             // serial so a second action cannot race against the same old frame.
             loopDetection: nil, parallelToolCalls: false, progressNudgeFractions: [])
@@ -692,6 +692,7 @@ struct AgentRunServices {
                 }
                 if let usb = selectedBridge as? USBDeviceBridge { try await usb.arm() }
                 var callbacks = AgentCallbacks()
+                callbacks.verifyCompletion = { _, _, _ in await action.verifyTaskCompletion() }
                 callbacks.afterTool = { [weak self, weak runner] call, result, _ in
                     // Do not leave receipts behind the streamed-text observer
                     // queue. Commit the result before the next model request.
@@ -723,12 +724,17 @@ struct AgentRunServices {
                 guard let self, self.generation == token else { await action.stop(); return }
                 let messages = self.sessions.conversation(conversationID)?.messages.filter { $0.runID == identity.runID } ?? []
                 let failure = messages.last(where: { $0.tool?.state == .failed })?.tool?.result
-                // A normal final answer ends a device run too; finish is optional.
-                // Only the tagged final turn counts, never a pre-tool narration.
-                // Completed describes the conversation, not proof of HID/UI success.
+                // Device mutations require explicit completion. A text-only
+                // action announcement must never release control as success.
                 let reason = summary != nil ? "finishTool" : (!finalText.isEmpty ? "finalText" : (failure != nil ? "toolFailure" : "noFinalText"))
-                self.usbDiagnostics.record("run.ended reason=\(reason) finishRequired=false")
+                self.usbDiagnostics.record("run.ended reason=\(reason) explicitCompletionGate=true")
                 if let summary { await self.closeRun(.completed, result: summary, bridge: selectedBridge, generation: token) }
+                else if await action.stoppedAfterInputFailures(), let failure {
+                    await self.closeRun(.blocked, result: failure, publishNotice: false, bridge: selectedBridge, generation: token)
+                }
+                else if await action.needsExplicitCompletion {
+                    await self.closeRun(.blocked, result: String(localized: "The model stopped before confirming task completion. The task is unfinished; check the latest screen."), bridge: selectedBridge, generation: token)
+                }
                 else if !finalText.isEmpty { await self.closeRun(.completed, result: finalText, bridge: selectedBridge, generation: token) }
                 else if let failure { await self.closeRun(.blocked, result: failure, publishNotice: false, bridge: selectedBridge, generation: token) }
                 else {
@@ -1254,6 +1260,7 @@ struct AgentRunServices {
     static let systemPrompt = """
     You assist with the user's explicit phone task. \(DeviceControlRoute.current.modelContext) Follow the tool's actual readiness and permission errors.
     Answer normal conversational questions directly. Public answer text is shown in the chat.
+    After device actions, continue tool use until the user's requested endpoint is reached and visible. Announcing an action does not execute it. Call finish with a factual observed summary only when the whole requested task is complete. Partial progress is not completion. Keyboard dismissal accepts no coordinates; never use a microphone, Return, or Send key to hide a keyboard.
     Before iOS operations, follow the built-in ios-operation skill when available. Prefer tap_text for a visible text label; use tap coordinates only for icons or non-text targets. Every coordinate action must include the image_id from the exact screenshot used to choose its target. Each state-changing action and wait consumes that image and returns a fresh screenshot with a new image_id; within one page you may issue several tap_text calls in a single response, because each one re-locates its text on the live screen right before tapping. One batch per page, never one call per turn. A tap_text that cannot find its text stops the batch and reports it, so later calls in that batch do not run. list_apps, launch_app, home and type_text have no screenshot prerequisite, but mutations and waits return a new observation. Capture authorization, a captured frame, or the input transport may be unavailable; report that honestly and never fabricate device state.
     Tool errors are returned as results. Read the error, then explain the limitation or choose a valid next step; do not blindly repeat a failing call. An input transport failure may mean the action already happened. Never blindly repeat or replay an action whose outcome is unknown. Tool errors alone do not end the task.
     Keep your private reasoning to at most two short sentences per turn; act instead of deliberating at length.

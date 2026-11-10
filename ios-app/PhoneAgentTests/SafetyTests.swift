@@ -291,39 +291,36 @@ private actor OCRRecoveryBridge: DeviceBridge {
         let taps = await bridge.taps, stopped = await bridge.stopped
         XCTAssertEqual(taps, 0); XCTAssertTrue(stopped)
     }
-    func testKeyboardIconCanRecoverAfterLabelMissUsingCurrentFrame() async throws {
+    func testKeyboardCoordinatesAreAlwaysRejectedBeforeAnyInput() async throws {
         let bridge = OCRRecoveryBridge(bytes: image())
-        let coordinator = ActionCoordinator(bridge: bridge, limits: AgentLimits(), approve: { _ in true }, onImage: { _, _ in }, onReceipt: { _ in }, locateText: { _, _ in [] })
-        _ = try await coordinator.execute(name: "screenshot", parameters: [:], callID: "initial")
-        let tool = DeviceTool(name: "dismiss_keyboard", coordinator: coordinator)
-        let failed = try await tool.execute(context: ToolContext(callId: "label-miss", toolName: "dismiss_keyboard", parameters: [:], state: AgentState(), actions: ToolActions()))
-        XCTAssertTrue(failed.isError); XCTAssertTrue(failed.result.contains("frame-2")); XCTAssertEqual(failed.images.count, 1)
-        let actions = ToolActions()
-        let recovered = try await tool.execute(context: ToolContext(callId: "visible-icon", toolName: "dismiss_keyboard", parameters: ["image_id": "frame-2", "x": 900, "y": 580], state: AgentState(), actions: actions))
-        XCTAssertFalse(recovered.isError); XCTAssertFalse(actions.shouldStop)
-        XCTAssertTrue(recovered.result.contains("frame-3")); XCTAssertEqual(recovered.images.count, 1)
-        let taps = await bridge.taps; XCTAssertEqual(taps, 1)
-        do {
-            _ = try await coordinator.execute(name: "dismiss_keyboard", parameters: ["image_id": "frame-2", "x": 900, "y": 580], callID: "stale")
-            XCTFail("Consumed visual reference must not dispatch another tap")
-        } catch {}
-        let after = await bridge.taps; XCTAssertEqual(after, 1)
+        let coordinator = ActionCoordinator(bridge: bridge, limits: AgentLimits(), approve: { _ in XCTFail("Coordinate rejection precedes approval"); return true }, onImage: { _, _ in }, onReceipt: { _ in })
+        _ = try await coordinator.execute(name: "screenshot", parameters: [:], callID: "frame")
+        for y in [972, 586] {
+            do { _ = try await coordinator.execute(name: "dismiss_keyboard", parameters: ["image_id": "frame-1", "x": 884, "y": y], callID: "bad-\(y)"); XCTFail("No coordinate-based keyboard dismissal") } catch {}
+        }
+        let taps = await bridge.taps; XCTAssertEqual(taps, 0)
         await coordinator.stop()
     }
-    func testKeyboardIconNeedsBothCoordinatesCurrentFrameAndApproval() async throws {
-        for parameters: [String: Any] in [["x": 900], ["x": 900, "y": 580], ["x": 900, "y": 580, "image_id": "other-run"], ["x": true, "y": 580, "image_id": "frame-1"]] {
-            let bridge = OCRRecoveryBridge(bytes: image())
-            let coordinator = ActionCoordinator(bridge: bridge, limits: AgentLimits(), approve: { _ in XCTFail("Malformed target must fail before approval"); return true }, onImage: { _, _ in }, onReceipt: { _ in })
-            _ = try await coordinator.execute(name: "screenshot", parameters: [:], callID: "initial")
-            do { _ = try await coordinator.execute(name: "dismiss_keyboard", parameters: parameters, callID: "invalid"); XCTFail("Invalid visual reference") } catch {}
-            let taps = await bridge.taps; XCTAssertEqual(taps, 0)
-            await coordinator.stop()
+    func testNativeKeyboardDismissalUsesAuthorizedSemanticActionWithoutTap() async throws {
+        let bridge = VerifiedKeyboardBridge()
+        let coordinator = ActionCoordinator(bridge: bridge, limits: AgentLimits(), approve: { _ in true }, onImage: { _, _ in }, onReceipt: { _ in })
+        let result = try await coordinator.execute(name: "dismiss_keyboard", parameters: [:], callID: "native")
+        XCTAssertFalse(result.isError)
+        let actions = await bridge.actions, taps = await bridge.taps
+        XCTAssertEqual(actions, ["dismiss_keyboard"]); XCTAssertEqual(taps, 0)
+        await coordinator.stop()
+    }
+    func testDeviceNarrationCannotCompleteAndExplicitFinishReleasesGate() async throws {
+        let bridge = VerifiedKeyboardBridge()
+        let coordinator = ActionCoordinator(bridge: bridge, limits: AgentLimits(), approve: { _ in true }, onImage: { _, _ in }, onReceipt: { _ in })
+        let before = await coordinator.verifyTaskCompletion(); XCTAssertEqual(before, .satisfied)
+        _ = try await coordinator.execute(name: "type_text", parameters: ["text": "fixture", "purpose": "synthetic"], callID: "input")
+        for _ in 0..<2 {
+            guard case .unsatisfied = await coordinator.verifyTaskCompletion() else { return XCTFail("A missing completion must request continuation") }
         }
-        let bridge = OCRRecoveryBridge(bytes: image())
-        let coordinator = ActionCoordinator(bridge: bridge, limits: AgentLimits(), approve: { _ in false }, onImage: { _, _ in }, onReceipt: { _ in })
-        _ = try await coordinator.execute(name: "screenshot", parameters: [:], callID: "initial")
-        do { _ = try await coordinator.execute(name: "dismiss_keyboard", parameters: ["image_id": "frame-1", "x": 900, "y": 580], callID: "denied"); XCTFail("No input without approval") } catch {}
-        let taps = await bridge.taps; XCTAssertEqual(taps, 0)
+        guard case .blocked = await coordinator.verifyTaskCompletion() else { return XCTFail("Repeated narration must never become success") }
+        _ = try await coordinator.execute(name: "finish", parameters: ["summary": "Fixture observed complete"], callID: "finish")
+        let after = await coordinator.verifyTaskCompletion(); XCTAssertEqual(after, .satisfied)
         await coordinator.stop()
     }
     func testForeignImageReferenceAndUnidentifiedKeyboardNeverDispatch() async throws {
@@ -341,4 +338,17 @@ private actor OCRRecoveryBridge: DeviceBridge {
         let taps = await bridge.taps; XCTAssertEqual(taps, 0)
         await coordinator.stop()
     }
+}
+
+private actor VerifiedKeyboardBridge: DeviceBridge {
+    private(set) var actions: [String] = []
+    private(set) var taps = 0
+    func supportsNativeKeyboardDismissal() -> Bool { true }
+    func screenshot() -> FrameImage { FrameImage(id: UUID().uuidString, png: Data(), width: 402, height: 874, capturedAt: Date(), isDemo: true) }
+    func tap(x: Int, y: Int, imageID: String) { taps += 1 }
+    func drag(fromX: Int, fromY: Int, toX: Int, toY: Int, durationMS: Int, imageID: String) {}
+    func systemActionContext() -> String { "native-keyboard-fixture" }
+    func authorizeSystemAction(authorizationID: String, taskScoped: Bool) {}
+    func systemAction(name: String, text: String, arguments: [String], imageID: String) { actions.append(name) }
+    func stop() {}
 }

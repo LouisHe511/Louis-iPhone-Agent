@@ -1,6 +1,40 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The model stopped before confirming task completion. The task is unfinished; check the latest screen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model stopped before confirming task completion. The task is unfinished; check the latest screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型在确认任务完成前停止了。任务尚未完成，请检查最新画面。"
+          }
+        }
+      }
+    },
+    "Keyboard dismissal does not accept coordinates. Use the verified close control instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyboard dismissal does not accept coordinates. Use the verified close control instead."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起键盘不接受坐标，请使用已验证的关闭控件。"
+          }
+        }
+      }
+    },
     "Select the keyboard close icon using both coordinates and the current screenshot.": {
       "extractionState": "manual",
       "localizations": {
@@ -296,13 +330,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The keyboard close button could not be identified uniquely. No tap was sent. Select its visible icon in the attached screenshot instead of repeating the same attempt."
+            "value": "A verified keyboard close control is unavailable. No input was sent. Inspect the current screen."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "未能确定键盘关闭按钮，未执行点击。请根据新截图选择关闭图标，不要重复相同操作。"
+            "value": "无法确认键盘关闭控件，未执行点击。请查看当前画面，不要尝试猜测坐标。"
           }
         }
       }

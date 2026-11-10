@@ -1023,7 +1023,7 @@ final class iCTRLUITests: XCTestCase, UNUserNotificationCenterDelegate {
         // Correct geometry outranks staying off the UI queue; every tap the
         // client sends is computed from these numbers. Cached after the first
         // call, so the cost is one-shot.
-        "device_info", "louis_geometry",
+        "device_info", "louis_geometry", "louis_dismiss_keyboard",
     ]
 
     /// Methods that bypass the UI queue entirely and run on their own concurrent

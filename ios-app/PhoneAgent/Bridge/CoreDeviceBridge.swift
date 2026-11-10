@@ -21,6 +21,7 @@ enum CoreDeviceAdmissionError: LocalizedError {
 }
 
 @MainActor protocol CoreDeviceControlConnection: AnyObject {
+    var supportsNativeKeyboardDismissal: Bool { get }
     var ready: Bool { get }
     var requiresNewRunAfterDisconnect: Bool { get }
     var connectionFailure: String? { get }
@@ -51,6 +52,7 @@ enum CoreDeviceAdmissionError: LocalizedError {
 }
 
 extension CoreDeviceControlConnection {
+    var supportsNativeKeyboardDismissal: Bool { false }
     var requiresNewRunAfterDisconnect: Bool { false }
     func finishRemoteAgent(owner: UUID, session: UUID, retentionGeneration: UUID?) { releaseAgent(owner: owner, session: session) }
     func agentInputGeometry(owner: UUID, session: UUID) async throws -> String { throw RemoteRPCError("geometry_unavailable", "Current input display geometry is unavailable") }
@@ -78,6 +80,7 @@ extension CoreDeviceControlConnection {
 }
 
 extension DeviceControlCoordinator: CoreDeviceControlConnection {
+    var supportsNativeKeyboardDismissal: Bool { route == .onDeviceXCTest }
     var requiresNewRunAfterDisconnect: Bool { route == .onDeviceXCTest }
     func agentInputGeometry(owner: UUID, session: UUID) async throws -> String {
         try await agentOperation(owner: owner, session: session) { services in
@@ -122,9 +125,10 @@ extension DeviceControlCoordinator: CoreDeviceControlConnection {
     }
     func agentSystemAction(owner: UUID, session: UUID, name: String, text: String, arguments: [String], validate: () throws -> Void) async throws {
         try await agentOperation(owner: owner, session: session) { services in
-            if name == "home" || name == "type_text" { try await self.prepareAgentInput(services) }
+            if name == "home" || name == "type_text" || name == "dismiss_keyboard" { try await self.prepareAgentInput(services) }
             try Task.checkCancellation(); try validate()
             switch name {
+            case "dismiss_keyboard": try await services.dismissKeyboard()
             case "home": try await services.home()
             case "type_text": try await services.typeText(text)
             case "launch_app": try await services.launchApplication(bundleID: text, arguments: arguments)
@@ -403,6 +407,7 @@ private final class CoreDeviceRunFence: @unchecked Sendable {
         let session = try requireSession()
         return try await perform { try await flow.agentApplications(owner: owner, session: session) }
     }
+    func supportsNativeKeyboardDismissal() async -> Bool { flow.supportsNativeKeyboardDismissal }
     func systemActionContext() async throws -> String {
         try await prepareConnection()
         return "ncm:\(try requireSession().uuidString):\(owner.uuidString)"

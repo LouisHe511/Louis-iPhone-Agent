@@ -184,7 +184,7 @@ private final class LongRunProvider: ModelProvider, @unchecked Sendable {
     func complete(_ request: ModelRequest) async throws -> ModelResponse {
         calls += 1
         XCTAssertNil(request.maxTokens, "No forced output-token budget")
-        XCTAssertFalse(request.tools.contains { $0.name == "finish" }, "Live runs use the final answer")
+        XCTAssertTrue(request.tools.contains { $0.name == "finish" }, "Device mutations require explicit completion; read-only answers can still end normally")
         let done = calls > 14
         return ModelResponse(text: done ? "Observed fourteen frames" : "", finishReason: done ? .stop : .toolCalls,
             usage: ModelUsage(totalTokens: 25_000),

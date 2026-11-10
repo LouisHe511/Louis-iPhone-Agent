@@ -12,6 +12,7 @@ struct InputDisplaySnapshot: Sendable {
 }
 
 protocol DeviceBridge: Sendable {
+    func supportsNativeKeyboardDismissal() async -> Bool
     func inputDisplaySnapshot() async throws -> InputDisplaySnapshot
     func authorizeIndependentInput(_ snapshot: InputDisplaySnapshot, authorizationID: String) async throws
     func independentInput(name: String, coordinates: [Int], durationMS: Int, snapshot: InputDisplaySnapshot, authorizationID: String) async throws
@@ -37,6 +38,7 @@ protocol DeviceBridge: Sendable {
 }
 
 extension DeviceBridge {
+    func supportsNativeKeyboardDismissal() async -> Bool { false }
     func finishRemoteRun() async { await stop() }
     func inputDisplaySnapshot() async throws -> InputDisplaySnapshot { throw RemoteRPCError("geometry_unavailable", "Current input display geometry is unavailable") }
     func authorizeIndependentInput(_ snapshot: InputDisplaySnapshot, authorizationID: String) async throws { throw RemoteRPCError("geometry_unavailable", "Independent input is unavailable on this route") }

@@ -425,8 +425,33 @@ class ActionHandler {
             "one of its buttons' centers. Ref/element actions on the app underneath won't work until it is gone.", data: nil)
     }
 
+    private func louisDismissKeyboard() -> ([String: JSONValue]?, JSONRPCError?) {
+        if let error = systemAlertBlocks() { return (nil, error) }
+        guard let bid = resolveForegroundBundleId(), bid != "com.apple.springboard" else {
+            return (nil, JSONRPCError(code: -32092, message: "No verified foreground keyboard. No input sent.", data: nil))
+        }
+        let target = XCUIApplication(bundleIdentifier: bid)
+        let keyboard = target.keyboards.firstMatch
+        guard keyboard.exists else { return (["keyboard_hidden": .bool(true), "input_sent": .bool(false)], nil) }
+        let top = keyboard.frame.minY
+        let names = ["Done", "完成", "Hide keyboard", "Hide Keyboard", "收起键盘", "隐藏键盘", "Dismiss keyboard"]
+        let buttons = target.buttons.matching(NSPredicate(format: "label IN %@ OR identifier IN %@", names, names)).allElementsBoundByIndex
+        let candidates = buttons.filter { button in
+            let f = button.frame
+            return button.exists && button.isHittable && !f.isEmpty && f.maxY <= top + 6 && f.minY >= top - 130
+        }
+        guard candidates.count == 1, let close = candidates.first else {
+            return (nil, JSONRPCError(code: -32092, message: "No unique native keyboard close control (matches=\(buttons.count), candidates=\(candidates.count), keyboardTop=\(top)). No input sent.", data: nil))
+        }
+        close.tap()
+        let hidden = keyboard.waitForNonExistence(timeout: 2)
+        guard hidden else { return (nil, JSONRPCError(code: -32093, message: "Close dispatched but keyboard remains visible. Do not replay.", data: nil)) }
+        return (["keyboard_hidden": .bool(true), "input_sent": .bool(true)], nil)
+    }
+
     func dispatch(method: String, params: [String: JSONValue]?) -> ([String: JSONValue]?, JSONRPCError?) {
         readFrame = nil
+        if method == "louis_dismiss_keyboard" { return louisDismissKeyboard() }
         if method == "louis_geometry" {
             let size = pointSize
             return (["token": .string(louisGeometry), "width": .double(size.width), "height": .double(size.height), "scale": .double(Double(scale))], nil)
@@ -3081,6 +3106,7 @@ class ActionHandler {
         // The local client waits for its own foreground state. Do not add
         // screen-settle sampling to that bootstrap round trip as well.
         if cmd.fast == true {
+            noteOpened(bundleId)
             guard ForegroundApp.openBundleID(bundleId) else {
                 return (nil, .serverError("Application open request was rejected"))
             }

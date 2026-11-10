@@ -206,7 +206,7 @@ struct DeviceTool: AgentTool {
         case "launch_app": return "Launch an installed app by exact bundle_id, optionally with up to 32 process arguments. No screenshot prerequisite. Requires task authorization. Does not terminate existing apps; arguments may not apply to an already running app. Delivery is not visual success. Reply includes a fresh screenshot and new image_id."
         case "type_text": return "Insert exact text into the focused field. All text uses clipboard and Command-V for the whole string, replacing the general clipboard and potentially requiring iOS paste consent. No automatic retry or Return submission. Requires task authorization. Do not use for credentials or replay uncertain input. Reply includes a fresh screenshot; verify the text landed and locate any next control from that image."
         case "wait": return "Wait locally 1..10000 ms. Reply includes a fresh screenshot — use it to check whether a countdown ad disappeared, a page finished loading, or content appeared."
-        case "dismiss_keyboard": return "Close the keyboard using its visible dismissal control, never Return/Send. If the screenshot shows an icon-only close control (such as a checkmark), supply its visually selected integer x/y (0-1000) AND exact current image_id; no coordinates are guessed automatically. Without coordinates, locate a readable Done label by local OCR. If that fails, inspect the returned fresh image and select the actual close icon instead of repeating unchanged arguments. The input uses normal approval/session/geometry checks; inspect the post-action screenshot to confirm the keyboard disappeared. Do not close an already absent keyboard."
+        case "dismiss_keyboard": return "Dismiss the keyboard through a uniquely identified native close control. No coordinates are accepted. Never tap a guessed keyboard corner, microphone, Return or Send. If no safe control is available, inspect the error and choose another approach; do not repeat unchanged requests."
         default: return "Optionally end the run with a brief outcome and any uncertainty in summary, never private reasoning. A normal final answer can also end the run. Do not claim visible success from a delivery receipt alone."
         }
     }
@@ -219,7 +219,7 @@ struct DeviceTool: AgentTool {
         let imageID = ToolParameterProperty(type: "string", description: "Exact image_id returned with the screenshot used to choose this target")
         switch name {
         case "screenshot", "list_apps": return .empty
-        case "dismiss_keyboard": return ToolParameters(properties: ["x": integer, "y": integer, "image_id": imageID], required: [])
+        case "dismiss_keyboard": return .empty
         case "tap": return ToolParameters(properties: ["x": integer, "y": integer, "image_id": imageID, "purpose": purpose], required: ["x", "y", "image_id", "purpose"])
         case "tap_text": return ToolParameters(properties: ["text": .init(type: "string", description: "Exact visible label to tap, up to 100 UTF-8 bytes"), "image_id": imageID, "occurrence": .init(type: "integer", description: "Optional 1-based match in reading order (top-to-bottom, then left-to-right); required only when the exact text appears more than once"), "purpose": purpose], required: ["text", "image_id", "purpose"])
         case "drag": return ToolParameters(properties: ["from_x": integer, "from_y": integer, "to_x": integer, "to_y": integer, "duration_ms": duration, "image_id": imageID, "purpose": purpose], required: ["from_x", "from_y", "to_x", "to_y", "duration_ms", "image_id", "purpose"])
@@ -285,6 +285,18 @@ actor ActionCoordinator {
     /// Monotonic counters powering the finish evidence gate: the model cannot
     /// end a run while the last device mutation (tap/drag/type/home/launch)
     /// has never been observed. Root-fixes fabricated completion claims.
+    private var completionChecks = 0
+    private var checkedMutationCount = -1
+    var needsExplicitCompletion: Bool { mutationCount > 0 && finishSummary == nil }
+    func verifyTaskCompletion() -> GoalVerdict {
+        guard needsExplicitCompletion else { return .satisfied }
+        if checkedMutationCount != mutationCount { checkedMutationCount = mutationCount; completionChecks = 0 }
+        completionChecks += 1
+        if completionChecks <= 2 {
+            return .unsatisfied(reason: "Device work has not been explicitly completed. A statement announcing your next action is not execution. Continue with tools, inspect the visible result, and call finish only when the user's requested endpoint has actually been reached. Do not repeat previous inputs. If blocked, explain the blocker instead of claiming success.")
+        }
+        return .blocked(reason: "The model ended without confirming device-task completion.")
+    }
     private var mutationCount = 0
     private var observationCount = 0
 
@@ -350,7 +362,7 @@ actor ActionCoordinator {
             guard selected.confidence >= 0.45 || selected.verifiedByCrop else {
                 throw TextTargetError.lowConfidence
             }
-            let purpose = try string(p, "purpose", max: 160)
+            let purpose = name == "dismiss_keyboard" ? "Dismiss keyboard using verified native control" : try string(p, "purpose", max: 160)
             let tapParameters: [String: Any] = [
                 "x": selected.x, "y": selected.y, "image_id": liveID,
                 "purpose": purpose, "_expected_image_id": liveID,
@@ -365,41 +377,10 @@ actor ActionCoordinator {
                                    isError: result.isError, images: result.images)
         }
         if name == "dismiss_keyboard" {
-            guard !inputInFlight else { throw AppError.unavailable(String(localized: "An input action is already running")) }
-            inputInFlight = true
-            defer { inputInFlight = false }
-            let frame: FrameImage
-            let point: (Int, Int)
-            if p["x"] != nil || p["y"] != nil {
-                guard p["x"] != nil, p["y"] != nil, let reference = p["image_id"] as? String else {
-                    throw AppError.invalid(String(localized: "Select the keyboard close icon using both coordinates and the current screenshot."))
-                }
-                // This is an explicit visual target, with the same current-frame
-                // checks as a normal icon tap. Never replace it with fixed points.
-                frame = try currentImage(reference)
-                point = (try integer(p, "x"), try integer(p, "y"))
-            } else {
-                let previous = try currentImage(p["image_id"] as? String)
-                frame = try await freshTextFrame(reference: previous.id)
-                let labelled = try await locateText(frame.png, String(localized: "Done"))
-                let candidates = labelled.filter { $0.y >= 480 }
-                guard candidates.count == 1, let candidate = candidates.first else {
-                    throw TextTargetError.keyboardControlUnavailable
-                }
-                let labelHit = try await ScreenTextOCR.verifyIfNeeded(in: frame.png, target: String(localized: "Done"), hit: candidate)
-                guard labelHit.confidence >= 0.45 || labelHit.verifiedByCrop else { throw TextTargetError.keyboardControlUnavailable }
-                point = (labelHit.x, labelHit.y)
+            guard p["x"] == nil, p["y"] == nil else {
+                throw AppError.invalid(String(localized: "Keyboard dismissal does not accept coordinates. Use the verified close control instead."))
             }
-            let tapParameters: [String: Any] = [
-                "x": point.0, "y": point.1, "image_id": frame.id,
-                "purpose": "dismiss keyboard", "_expected_image_id": frame.id,
-                "_resolved_text_tap": true, "_requested_tool_name": "dismiss_keyboard",
-            ]
-            let result = try await execute(name: "tap", parameters: tapParameters, callID: callID)
-            let source = "the identified keyboard control at \(point.0),\(point.1)"
-            return AgentToolResult(toolCallId: result.toolCallId, toolName: "dismiss_keyboard",
-                                   result: "Tapped \(source). Inspect the attached fresh frame to confirm the keyboard is gone. If still visible, reassess the control; do not repeat unchanged arguments.\n\(result.result)",
-                                   isError: result.isError, images: result.images)
+            guard await bridge.supportsNativeKeyboardDismissal() else { throw TextTargetError.keyboardControlUnavailable }
         }
         // scroll → precise drag primitives. Content direction (down = reveal
         // below) maps to an opposing finger travel centered on the screen;
@@ -472,7 +453,7 @@ actor ActionCoordinator {
             let output = try JSONSerialization.data(withJSONObject: safeRows, options: [.sortedKeys])
             try await lifecycle?.acknowledge(callID: callID, generation: generation)
             return .success(toolCallId: callID, toolName: name, result: String(decoding: output, as: UTF8.self))
-        case "tap", "drag", "scroll", "home", "launch_app", "type_text":
+        case "tap", "drag", "scroll", "home", "launch_app", "type_text", "dismiss_keyboard":
             let coordinateAction = name == "tap" || name == "drag" || name == "scroll"
             let independent = coordinateAction && remoteCallInFlight && p["_input_contract"] as? String == InputDisplaySnapshot.contract
             let display = independent ? try await bridge.inputDisplaySnapshot() : nil
@@ -485,7 +466,7 @@ actor ActionCoordinator {
             if verifyGeometry, let frame { try await bridge.validateRemoteObservation(frame); try checkActive() }
             // Non-coordinate actions have their own one-use authorization reference.
             let reference = frame?.id ?? UUID().uuidString
-            let purpose = try string(p, "purpose", max: 160)
+            let purpose = name == "dismiss_keyboard" ? "Dismiss keyboard using verified native control" : try string(p, "purpose", max: 160)
             var text = "", arguments: [String] = []
             if name == "type_text" {
                 guard let value = p["text"] as? String, !value.isEmpty else { throw AppError.invalid(String(localized: "Text is missing or empty")) }

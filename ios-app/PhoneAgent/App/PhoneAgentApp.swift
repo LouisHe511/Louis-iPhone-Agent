@@ -15,7 +15,7 @@ import Network
         PhoneAgentShortcuts.updateAppShortcutParameters()
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--keep-awake") { UIApplication.shared.isIdleTimerDisabled = true }
-        if ProcessInfo.processInfo.arguments.contains("--ocr-fix-probe") || ProcessInfo.processInfo.arguments.contains("--local-control-integrated-probe") || ProcessInfo.processInfo.arguments.contains("--local-control-lifecycle-probe") {
+        if ProcessInfo.processInfo.arguments.contains("--keyboard-native-probe") || ProcessInfo.processInfo.arguments.contains("--ocr-fix-probe") || ProcessInfo.processInfo.arguments.contains("--local-control-integrated-probe") || ProcessInfo.processInfo.arguments.contains("--local-control-lifecycle-probe") {
             _ = DeviceControlCoordinator.shared.selectRoute(.onDeviceXCTest)
         }
         if ProcessInfo.processInfo.arguments.contains("--local-vpn-probe") {
@@ -29,7 +29,8 @@ import Network
             ContentView(model: model, statusPiP: statusPiP, commands: PhoneAgentRuntime.shared.commands)
                 .overlay {
                     #if DEBUG
-                    if ProcessInfo.processInfo.arguments.contains("--ocr-fix-probe") { OCRFixProbeView() }
+                    if ProcessInfo.processInfo.arguments.contains("--keyboard-native-probe") { KeyboardNativeProbeView() }
+                    else if ProcessInfo.processInfo.arguments.contains("--ocr-fix-probe") { OCRFixProbeView() }
                     else if ProcessInfo.processInfo.arguments.contains("--local-control-integrated-probe") { LocalControlProbeView() }
                     else if ProcessInfo.processInfo.arguments.contains("--local-vpn-probe") { LocalVPNProbeView() }
                     else if ProcessInfo.processInfo.arguments.contains("--coredevice-video-geometry-probe") { CoreDeviceVideoGeometryProbeView(statusPiP: statusPiP) }
@@ -543,6 +544,45 @@ private struct CoreDeviceToolsProbeView: View {
             }
             status = String(localized: "Verification complete")
         } catch { status = String(localized: "Verification did not finish"); record("failed: " + String(describing: error)) }
+    }
+}
+#endif
+
+#if DEBUG
+@MainActor private struct KeyboardNativeProbeView: View {
+    @State private var text = "Synthetic fixture"
+    @State private var visible = false
+    @FocusState private var focused: Bool
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text(verbatim: "Keyboard acceptance fixture")
+                TextField(text: $text) { Text(verbatim: "Fixture") }.focused($focused).textFieldStyle(.roundedBorder)
+                Text(verbatim: visible ? "Keyboard visible" : "Keyboard hidden")
+            }.padding().frame(maxWidth: .infinity, maxHeight: .infinity).background(.white)
+            .toolbar { ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button { focused = false } label: { Image(systemName: "checkmark") }.accessibilityLabel("Done")
+            } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in visible = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in visible = false }
+        .task {
+            let file = URL.documentsDirectory.appending(path: "keyboard-native-acceptance.log")
+            func record(_ value: String) { try? "\(Date().ISO8601Format()) \(value)".write(to: file, atomically: true, encoding: .utf8) }
+            record("starting")
+            let coordinator = ActionCoordinator(bridge: try! CoreDeviceBridge(flow: DeviceControlCoordinator.shared), limits: AgentLimits(), approve: { _ in true }, onImage: { _, _ in }, onReceipt: { _ in })
+            do {
+                _ = try await coordinator.execute(name: "screenshot", parameters: [:], callID: "bootstrap")
+                focused = true
+                for _ in 0..<30 where !visible { try await Task.sleep(for: .milliseconds(100)) }
+                guard visible else { throw NSError(domain: "KeyboardFixture", code: 1) }
+                _ = try await coordinator.execute(name: "dismiss_keyboard", parameters: [:], callID: "verified-close")
+                try await Task.sleep(for: .milliseconds(200))
+                record(visible ? "FAIL keyboard still visible" : "PASS native checkmark dismissed actual keyboard; no coordinates supplied")
+            } catch { record("FAIL \(error)") }
+            await coordinator.stop()
+        }
     }
 }
 #endif

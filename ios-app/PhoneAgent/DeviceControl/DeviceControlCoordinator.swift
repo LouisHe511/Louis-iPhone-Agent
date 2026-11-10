@@ -257,6 +257,9 @@ import CryptoKit
             if (error as NSError).domain == "LocalControlRPC", (error as NSError).code == -32091 {
                 throw NativeInputGeometryError(.generationChanged)
             }
+            if (error as NSError).domain == "LocalControlRPC", (error as NSError).code == -32092 {
+                throw NativeInputGeometryError(.metadataInvalid)
+            }
             if mutation { throw NativeBackendError.protocolFailure(stage: 11, cause: 7) }
             throw error
         }
@@ -345,6 +348,11 @@ import CryptoKit
     func home() async throws {
         if credential == nil { try await native.home(); return }
         _ = try await call("home", ["settle": false], mutation: true)
+    }
+    func dismissKeyboard() async throws {
+        guard credential != nil else { throw NativeBackendError.protocolFailure(stage: 21, cause: 3) }
+        let result = try await call("louis_dismiss_keyboard", mutation: true)
+        guard result["keyboard_hidden"] as? Bool == true else { throw NativeBackendError.protocolFailure(stage: 11, cause: 7) }
     }
     func typeText(_ text: String) async throws {
         if credential == nil { try await native.typeText(text); return }
